@@ -24,15 +24,11 @@ The messages will be written either in a half static and half dynamic format or 
 
 **Half dynamic**
 
-_Windows Event Static_
-String EventTime, String Hostname, String EventType, String Severity, String SourceModuleName, String UserID, Integer ProcessID, String Domain, String EventReceivedTime, String Path, String Message
-_Windows Event Dynamic (all other fields)_
-Map<String, Object> dynamic = new HashMap<>()
+_Windows Event Static_: String EventTime, String Hostname, String EventType, String Severity, String SourceModuleName, String UserID, Integer ProcessID, String Domain, String EventReceivedTime, String Path, String Message
+_Windows Event Dynamic (all other fields)_: Map<String, Object> dynamic = new HashMap<>()
 
-_Syslog Event Static_
-Integer Severity, Integer Facility, String host, String timestamp
-_Syslog Event Dynamic (all other fields)_
-Map<String, Object> dynamic = new HashMap<>()
+_Syslog Event Static_: Integer Severity, Integer Facility, String host, String timestamp
+_Syslog Event Dynamic (all other fields)_: Map<String, Object> dynamic = new HashMap<>()
 
 **Fully dynamic**
 
