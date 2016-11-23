@@ -1,6 +1,7 @@
 # flume-avro-serializer
 
-Public Home: https://github.com/codepfleger/flume-avro-serializer
+**Public Home**
+https://github.com/codepfleger/flume-avro-serializer
 
 This library allows you to store Avro files in HDFS using a specific but dynamic avro-schema.
 There is no need to specify the avro-schema itself, as it will be deduced.
