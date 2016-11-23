@@ -1,0 +1,1 @@
+# flume-avro-serializer
