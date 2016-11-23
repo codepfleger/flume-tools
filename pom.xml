@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>de.codepfleger.flume</groupId>
-	<artifactId>avro-serializer</artifactId>
+	<artifactId>flume-avro-serializer</artifactId>
 	<version>1.0-SNAPSHOT</version>
 
 	<scm>
