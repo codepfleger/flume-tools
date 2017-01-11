@@ -8,7 +8,7 @@ import java.util.Map;
 public abstract class AbstractReflectionAvroEventSerializer<T> extends org.apache.flume.serialization.AbstractAvroEventSerializer<T> {
     protected static final DynamicAvroSchemaCreator SCHEMA_CREATOR = new DynamicAvroSchemaCreator();
 
-    protected void setFieldsAndRemove(Object eventObject, Map<String, Object> dataMap) throws Exception {
+    public static void setFieldsAndRemove(Object eventObject, Map<String, Object> dataMap) throws Exception {
         for (Field field : eventObject.getClass().getDeclaredFields()) {
             Class<?> type = field.getType();
             Object property = dataMap.get(field.getName());

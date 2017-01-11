@@ -16,8 +16,8 @@ public class WindowsLogSerializer extends AbstractReflectionAvroEventSerializer<
     private final OutputStream out;
 
     public WindowsLogSerializer(OutputStream out) {
-        this.out = out;
         this.mapper = new ObjectMapper();
+        this.out = out;
     }
 
     @Override
