@@ -18,12 +18,20 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class WindowsLogSerializer implements EventSerializer, Configurable {
     public static final String FILE_PATH_KEY = "filePath";
+    public static final String FILE_SIZE_KEY = "fileSize";
 
     private final ObjectMapper mapper;
+
+    private String filePath;
+    private int fileSize;
+
     private ParquetWriter<GenericData.Record> writer;
+    private Path fileToWrite;
+    private AtomicInteger fileNumber = new AtomicInteger(0);
 
     public WindowsLogSerializer() {
         this.mapper = new ObjectMapper();
@@ -35,21 +43,39 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
 
     @Override
     public void configure(Context context) {
-        String filePath = context.getString(FILE_PATH_KEY);
+        filePath = context.getString(FILE_PATH_KEY);
         if(filePath == null) {
             throw new IllegalStateException("filePath missing");
-        } else if(filePath.contains("%t")) {
-            filePath = filePath.replaceAll("%t", "" + System.currentTimeMillis());
         }
+        fileSize = context.getInteger(FILE_SIZE_KEY, 500000);
 
-        Path fileToWrite = new Path(filePath);
-//        filePath.length()
         try {
-            writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
-                    .withSchema(getSchema())
-                    .withCompressionCodec(CompressionCodecName.SNAPPY).build();
+            createWriter();
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private synchronized void createWriter() throws IOException {
+        closeWriter(writer);
+
+        String newFilePath = filePath;
+        if(newFilePath.contains("%t")) {
+            newFilePath = newFilePath.replaceAll("%t", "" + System.currentTimeMillis());
+        }
+        if(newFilePath.contains("%n")) {
+            newFilePath = newFilePath.replaceAll("%n", "" + fileNumber.incrementAndGet());
+        }
+
+        fileToWrite = new Path(newFilePath);
+        writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
+                .withSchema(getSchema())
+                .withCompressionCodec(CompressionCodecName.SNAPPY).build();
+    }
+
+    private void closeWriter(ParquetWriter<GenericData.Record> writer) throws IOException {
+        if(writer != null) {
+            writer.close();
         }
     }
 
@@ -85,10 +111,20 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
             record.put("Path", windowsLogEvent.Path);
             record.put("Message", windowsLogEvent.Message);
             record.put("dynamic", windowsLogEvent.dynamic);
-            writer.write(record);
+
+            writeRecord(record);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private synchronized void writeRecord(GenericData.Record record) throws IOException {
+        long length = writer.getDataSize();
+        if(length > fileSize) {
+            createWriter();
+        }
+
+        writer.write(record);
     }
 
     @Override

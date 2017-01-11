@@ -18,7 +18,8 @@ public class WindowsLogSerializerTest {
     public void startUp() {
         sut = new WindowsLogSerializer();
         Context context = new Context();
-        context.put(WindowsLogSerializer.FILE_PATH_KEY, "file:///C://dev//projects//flume-avro-serializer//tmp//data.%t.parquet");
+        context.put(WindowsLogSerializer.FILE_PATH_KEY, "file:///C://dev//projects//flume-avro-serializer//tmp//data.%t.%n.parquet");
+        context.put(WindowsLogSerializer.FILE_SIZE_KEY, "3000");
         sut.configure(context);
     }
 
