@@ -43,12 +43,16 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         txn.begin();
         try {
             Event event = ch.take();
-            serializer.write(event);
-            txn.commit();
+            if (event != null) {
+                serializer.write(event);
+                txn.commit();
+            }
             return Status.READY;
         } catch (Throwable t) {
             txn.rollback();
             return Status.BACKOFF;
+        } finally {
+            txn.close();
         }
     }
 
