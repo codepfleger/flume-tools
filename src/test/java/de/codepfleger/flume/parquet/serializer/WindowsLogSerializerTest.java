@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-import static de.codepfleger.flume.avro.serializer.serializer.JsonTestData.*;
+import static de.codepfleger.flume.parquet.serializer.JsonTestData.*;
 
 @Ignore
 public class WindowsLogSerializerTest {

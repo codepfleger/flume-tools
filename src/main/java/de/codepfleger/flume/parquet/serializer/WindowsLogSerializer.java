@@ -7,20 +7,27 @@ import org.apache.avro.generic.GenericData;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.conf.Configurable;
+import org.apache.flume.formatter.output.BucketPath;
 import org.apache.flume.serialization.EventSerializer;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class WindowsLogSerializer implements EventSerializer, Configurable {
+    private static final Logger LOG = LoggerFactory.getLogger(WindowsLogSerializer.class);
+
     public static final String FILE_PATH_KEY = "filePath";
     public static final String FILE_SIZE_KEY = "fileSize";
 
@@ -32,6 +39,7 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
     private ParquetWriter<GenericData.Record> writer;
     private Path fileToWrite;
     private AtomicInteger fileNumber = new AtomicInteger(0);
+    private TimeZone timeZone;
 
     public WindowsLogSerializer() {
         this.mapper = new ObjectMapper();
@@ -48,6 +56,13 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
             throw new IllegalStateException("filePath missing");
         }
         fileSize = context.getInteger(FILE_SIZE_KEY, 500000);
+
+        LOG.info("WindowsLogSerializer.filePath = " + filePath);
+        LOG.info("WindowsLogSerializer.fileSize = " + fileSize);
+
+        String tzName = context.getString("hdfs.timeZone");
+        timeZone = tzName == null ? null : TimeZone.getTimeZone(tzName);
+
 
         try {
             createWriter();
@@ -66,6 +81,9 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
         if(newFilePath.contains("%n")) {
             newFilePath = newFilePath.replaceAll("%n", "" + fileNumber.incrementAndGet());
         }
+
+        newFilePath = BucketPath.escapeString(newFilePath, new HashMap<String, String>(),
+                timeZone, false, 0, 1, true);
 
         fileToWrite = new Path(newFilePath);
         writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
