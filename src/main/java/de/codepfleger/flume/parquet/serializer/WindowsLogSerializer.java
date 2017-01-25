@@ -82,6 +82,7 @@ public class WindowsLogSerializer implements ParquetSerializer {
 
     @Override
     public void beforeClose() throws IOException {
+        writer.close();
     }
 
     @Override
@@ -101,7 +102,7 @@ public class WindowsLogSerializer implements ParquetSerializer {
 
     @Override
     public void close() throws IOException {
-        writer.close();
+        beforeClose();
     }
 
     public static class Builder implements EventSerializer.Builder {
