@@ -22,7 +22,6 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class WindowsLogSerializer implements EventSerializer, Configurable {
@@ -39,7 +38,6 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
     private ParquetWriter<GenericData.Record> writer;
     private Path fileToWrite;
     private AtomicInteger fileNumber = new AtomicInteger(0);
-    private TimeZone timeZone;
 
     public WindowsLogSerializer() {
         this.mapper = new ObjectMapper();
@@ -59,19 +57,9 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
 
         LOG.info("WindowsLogSerializer.filePath = " + filePath);
         LOG.info("WindowsLogSerializer.fileSize = " + fileSize);
-
-        String tzName = context.getString("hdfs.timeZone");
-        timeZone = tzName == null ? null : TimeZone.getTimeZone(tzName);
-
-
-        try {
-            createWriter();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
-    private synchronized void createWriter() throws IOException {
+    private synchronized void createNewWriter() throws IOException {
         closeWriter(writer);
 
         String newFilePath = filePath;
@@ -82,13 +70,13 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
             newFilePath = newFilePath.replaceAll("%n", "" + fileNumber.incrementAndGet());
         }
 
-        newFilePath = BucketPath.escapeString(newFilePath, new HashMap<String, String>(),
-                timeZone, false, 0, 1, true);
+        newFilePath = BucketPath.escapeString(newFilePath, new HashMap<String, String>(),null, false, 0, 1, true);
 
         fileToWrite = new Path(newFilePath);
         writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
                 .withSchema(getSchema())
-                .withCompressionCodec(CompressionCodecName.SNAPPY).build();
+                .withCompressionCodec(CompressionCodecName.SNAPPY)
+                .build();
     }
 
     private void closeWriter(ParquetWriter<GenericData.Record> writer) throws IOException {
@@ -137,9 +125,8 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
     }
 
     private synchronized void writeRecord(GenericData.Record record) throws IOException {
-        long length = writer.getDataSize();
-        if(length > fileSize) {
-            createWriter();
+        if(writer == null || writer.getDataSize() > fileSize) {
+            createNewWriter();
         }
 
         writer.write(record);
@@ -151,7 +138,7 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
 
     @Override
     public void beforeClose() throws IOException {
-        writer.close();
+        closeWriter(writer);
     }
 
     @Override
