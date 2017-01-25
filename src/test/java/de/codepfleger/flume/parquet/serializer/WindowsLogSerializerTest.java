@@ -1,5 +1,8 @@
 package de.codepfleger.flume.parquet.serializer;
 
+import de.codepfleger.flume.avro.serializer.event.WindowsLogEvent;
+import de.codepfleger.flume.avro.serializer.serializer.AbstractReflectionAvroEventSerializer;
+import org.apache.avro.Schema;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.event.SimpleEvent;
@@ -17,15 +20,17 @@ public class WindowsLogSerializerTest {
     private WindowsLogSerializer sut;
 
     @Before
-    public void startUp() {
+    public void startUp() throws IOException {
         sut = new WindowsLogSerializer();
         Context context = new Context();
         sut.configure(context);
+        Schema schema = new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(WindowsLogEvent.class));
+        sut.initialize("file:///C://dev//projects//flume-parquet-sink//tmp//data" + System.currentTimeMillis() + ".parquet", schema);
     }
 
     @After
     public void tearDown() throws IOException {
-        sut.beforeClose();
+        sut.close();
     }
 
     @Test
