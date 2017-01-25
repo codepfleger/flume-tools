@@ -7,21 +7,19 @@ import org.apache.flume.channel.MemoryChannel;
 import org.apache.flume.event.SimpleEvent;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
 
 import static de.codepfleger.flume.parquet.serializer.JsonTestData.*;
 
-@Ignore
 public class HDFSParquetSinkTest {
     private HDFSParquetSink sut;
     private MemoryChannel memoryChannel;
 
     @Before
     public void startUp() throws IOException {
-        String filePath = "file:///C://dev//projects//flume-parquet-sink//tmp//data" + System.currentTimeMillis() + ".parquet";
+        String filePath = "tmp//data" + System.currentTimeMillis() + ".parquet";
         String serializerType = WindowsLogSerializer.Builder.class.getName();
 
         Context context = new Context();

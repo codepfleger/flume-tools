@@ -13,14 +13,12 @@ import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
 
 import static de.codepfleger.flume.parquet.serializer.JsonTestData.*;
 
-@Ignore
 public class WindowsLogSerializerTest {
     private WindowsLogSerializer sut;
 
@@ -30,7 +28,7 @@ public class WindowsLogSerializerTest {
         Context context = new Context();
         sut.configure(context);
         Schema schema = new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(WindowsLogEvent.class));
-        Path fileToWrite = new Path("file:///C://dev//projects//flume-parquet-sink//tmp//data" + System.currentTimeMillis() + ".parquet");
+        Path fileToWrite = new Path("tmp//data" + System.currentTimeMillis() + ".parquet");
         ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
                 .withSchema(schema)
                 .withCompressionCodec(CompressionCodecName.SNAPPY)
