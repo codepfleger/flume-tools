@@ -5,6 +5,7 @@
 https://github.com/codepfleger/flume-parquet-sink
 
 TODO:
+0. Problem beim Shutdown
 1. Multi-Events in one Transaction
 2. Paging in Parquet Files
 3. Logging verbessern zum Fehlerhandling und Analyse
