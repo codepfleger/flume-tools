@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Random;
 
 public class HDFSParquetSink extends AbstractSink implements Configurable {
     public static final String FILE_PATH_KEY = "filePath";
@@ -28,12 +28,12 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     private static final Logger LOG = LoggerFactory.getLogger(HDFSParquetSink.class);
 
     private final Object lock = new Object();
-    private AtomicInteger fileNumber = new AtomicInteger(0);
+    private final Random random = new Random();
 
     private SerializerLinkedHashMap serializers;
 
     private String filePath;
-    private Integer fileSize;
+    private Integer uncompressedFileSize;
     private String serializerType;
     private Context serializerContext;
 
@@ -85,7 +85,7 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         synchronized (lock) {
             ParquetSerializer eventSerializer = serializers.get(filePath);
             if(eventSerializer != null) {
-                if(eventSerializer.getWriter().getDataSize() > fileSize) {
+                if(eventSerializer.getWriter().getDataSize() > uncompressedFileSize) {
                     eventSerializer.close();
                     serializers.remove(filePath);
                 }
@@ -117,9 +117,9 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
 
     private String getActualFilePath(String actualFilePath) {
         if(actualFilePath.contains("%[n]")) {
-            actualFilePath = actualFilePath.replace("%[n]", "" + fileNumber.incrementAndGet());
+            actualFilePath = actualFilePath.replace("%[n]", "" + random.nextInt());
         } else {
-            actualFilePath += "." + fileNumber.incrementAndGet();
+            actualFilePath += "." + random.nextInt();
         }
         return actualFilePath;
     }
@@ -134,7 +134,7 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         if(filePath == null) {
             throw new IllegalStateException("filePath missing");
         }
-        fileSize = context.getInteger(FILE_SIZE_KEY, 500000);
+        uncompressedFileSize = context.getInteger(FILE_SIZE_KEY, 500000);
         serializerType = context.getString("serializer", "TEXT");
         serializerContext = new Context(context.getSubProperties(EventSerializer.CTX_PREFIX));
 
