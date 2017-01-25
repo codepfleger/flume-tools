@@ -1,19 +1,35 @@
-package de.codepfleger.flume.avro.serializer.serializer;
+package de.codepfleger.flume.parquet.serializer;
 
-import de.codepfleger.flume.avro.serializer.event.WindowsLogEvent;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.event.SimpleEvent;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
+import java.io.IOException;
 
-import static de.codepfleger.flume.avro.serializer.serializer.JsonTestData.*;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static de.codepfleger.flume.parquet.serializer.JsonTestData.*;
 
+@Ignore
 public class WindowsLogSerializerTest {
+    private WindowsLogSerializer sut;
+
+    @Before
+    public void startUp() {
+        sut = new WindowsLogSerializer();
+        Context context = new Context();
+        context.put(WindowsLogSerializer.FILE_PATH_KEY, "file:///C://dev//projects//flume-avro-serializer//tmp//data.%t.%n.parquet");
+        context.put(WindowsLogSerializer.FILE_SIZE_KEY, "3000");
+        sut.configure(context);
+    }
+
+    @After
+    public void tearDown() throws IOException {
+        sut.beforeClose();
+    }
+
     @Test
     public void testEventCreation() throws Exception {
         testEventCreation(TEST_INPUT_1.getBytes());
@@ -28,16 +44,8 @@ public class WindowsLogSerializerTest {
     }
 
     public void testEventCreation(byte[] testDaten) throws Exception {
-        OutputStream out = new ByteArrayOutputStream();
-        WindowsLogSerializer sut = new WindowsLogSerializer(out);
-        sut.configure(new Context());
-
         Event event = new SimpleEvent();
         event.setBody(testDaten);
-        WindowsLogEvent windowsLogEvent = sut.convert(event);
-
-        System.out.println(windowsLogEvent + " " + windowsLogEvent.dynamic.size());
-        assertNotNull(windowsLogEvent);
-        assertTrue(windowsLogEvent.dynamic.size() > 0);
+        sut.write(event);
     }
 }
