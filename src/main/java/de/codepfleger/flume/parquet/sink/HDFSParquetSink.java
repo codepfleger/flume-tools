@@ -4,12 +4,17 @@ import de.codepfleger.flume.avro.serializer.event.WindowsLogEvent;
 import de.codepfleger.flume.avro.serializer.serializer.AbstractReflectionAvroEventSerializer;
 import de.codepfleger.flume.parquet.serializer.ParquetSerializer;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.flume.*;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.formatter.output.BucketPath;
 import org.apache.flume.serialization.EventSerializer;
 import org.apache.flume.serialization.EventSerializerFactory;
 import org.apache.flume.sink.AbstractSink;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.avro.AvroParquetWriter;
+import org.apache.parquet.hadoop.ParquetWriter;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +24,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class HDFSParquetSink extends AbstractSink implements Configurable {
     public static final String FILE_PATH_KEY = "filePath";
     public static final String FILE_SIZE_KEY = "fileSize";
-    public static final String SCHEMA_KEY = "schema";
 
     private static final Logger LOG = LoggerFactory.getLogger(HDFSParquetSink.class);
 
@@ -52,7 +56,6 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
                 serializers.clear();
             }
         }
-
         super.stop();
     }
 
@@ -88,8 +91,8 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
                 }
             }
             if(eventSerializer == null) {
-                ParquetSerializer serializer = createSerializer(filePath);
-                serializers.put(filePath, serializer);
+                eventSerializer = createSerializer(filePath);
+                serializers.put(filePath, eventSerializer);
             }
             return eventSerializer;
         }
@@ -98,7 +101,12 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     private ParquetSerializer createSerializer(String filePath) throws IOException {
         ParquetSerializer eventSerializer;
         eventSerializer = (ParquetSerializer) EventSerializerFactory.getInstance(serializerType, serializerContext, null);
-        eventSerializer.initialize(filePath, getSchema());
+        Path fileToWrite = new Path(filePath);
+        ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
+                .withSchema(getSchema())
+                .withCompressionCodec(CompressionCodecName.SNAPPY)
+                .build();
+        eventSerializer.initialize(writer, getSchema());
         return eventSerializer;
     }
 
@@ -112,7 +120,7 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         if(actualFilePath.contains("%[n]")) {
             actualFilePath = actualFilePath.replace("%[n]", "" + fileNumber.incrementAndGet());
         } else {
-            actualFilePath += fileNumber.incrementAndGet();
+            actualFilePath += "." + fileNumber.incrementAndGet();
         }
         return actualFilePath;
     }
@@ -127,6 +135,6 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         serializerType = context.getString("serializer", "TEXT");
         serializerContext = new Context(context.getSubProperties(EventSerializer.CTX_PREFIX));
 
-        serializers = new SerializerLinkedHashMap(16);
+        serializers = new SerializerLinkedHashMap(4);
     }
 }
