@@ -6,8 +6,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
-import org.apache.flume.conf.Configurable;
-import org.apache.flume.formatter.output.BucketPath;
 import org.apache.flume.serialization.EventSerializer;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
@@ -19,70 +17,23 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
-public class WindowsLogSerializer implements EventSerializer, Configurable {
+public class WindowsLogSerializer implements ParquetSerializer {
     private static final Logger LOG = LoggerFactory.getLogger(WindowsLogSerializer.class);
-
-    public static final String FILE_PATH_KEY = "filePath";
-    public static final String FILE_SIZE_KEY = "fileSize";
 
     private final ObjectMapper mapper;
 
-    private String filePath;
-    private int fileSize;
-
     private ParquetWriter<GenericData.Record> writer;
-    private Path fileToWrite;
-    private AtomicInteger fileNumber = new AtomicInteger(0);
+    private Schema schema;
 
     public WindowsLogSerializer() {
         this.mapper = new ObjectMapper();
     }
 
-    protected Schema getSchema() {
-        return new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(WindowsLogEvent.class));
-    }
-
     @Override
     public void configure(Context context) {
-        filePath = context.getString(FILE_PATH_KEY);
-        if(filePath == null) {
-            throw new IllegalStateException("filePath missing");
-        }
-        fileSize = context.getInteger(FILE_SIZE_KEY, 500000);
-
-        LOG.info("WindowsLogSerializer.filePath = " + filePath);
-        LOG.info("WindowsLogSerializer.fileSize = " + fileSize);
-    }
-
-    private synchronized void createNewWriter() throws IOException {
-        closeWriter(writer);
-
-        String newFilePath = filePath;
-        if(newFilePath.contains("%t")) {
-            newFilePath = newFilePath.replaceAll("%t", "" + System.currentTimeMillis());
-        }
-        if(newFilePath.contains("%n")) {
-            newFilePath = newFilePath.replaceAll("%n", "" + fileNumber.incrementAndGet());
-        }
-
-        newFilePath = BucketPath.escapeString(newFilePath, new HashMap<String, String>(),null, false, 0, 1, true);
-
-        fileToWrite = new Path(newFilePath);
-        writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
-                .withSchema(getSchema())
-                .withCompressionCodec(CompressionCodecName.SNAPPY)
-                .build();
-    }
-
-    private void closeWriter(ParquetWriter<GenericData.Record> writer) throws IOException {
-        if(writer != null) {
-            writer.close();
-        }
     }
 
     @Override
@@ -104,7 +55,7 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
             AbstractReflectionAvroEventSerializer.setFieldsAndRemove(windowsLogEvent, dataMap);
             windowsLogEvent.dynamic.putAll(dataMap);
 
-            GenericData.Record record = new GenericData.Record(getSchema());
+            GenericData.Record record = new GenericData.Record(schema);
             record.put("EventTime", windowsLogEvent.EventTime);
             record.put("Hostname", windowsLogEvent.Hostname);
             record.put("EventType", windowsLogEvent.EventType);
@@ -125,10 +76,6 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
     }
 
     private synchronized void writeRecord(GenericData.Record record) throws IOException {
-        if(writer == null || writer.getDataSize() > fileSize) {
-            createNewWriter();
-        }
-
         writer.write(record);
     }
 
@@ -138,12 +85,31 @@ public class WindowsLogSerializer implements EventSerializer, Configurable {
 
     @Override
     public void beforeClose() throws IOException {
-        closeWriter(writer);
     }
 
     @Override
     public boolean supportsReopen() {
         return false;
+    }
+
+    public void initialize(String filePath, Schema schema) throws IOException {
+        this.schema = schema;
+
+        Path fileToWrite = new Path(filePath);
+        writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
+                .withSchema(schema)
+                .withCompressionCodec(CompressionCodecName.SNAPPY)
+                .build();
+    }
+
+    @Override
+    public ParquetWriter<GenericData.Record> getWriter() {
+        return writer;
+    }
+
+    @Override
+    public void close() throws IOException {
+        writer.close();
     }
 
     public static class Builder implements EventSerializer.Builder {
