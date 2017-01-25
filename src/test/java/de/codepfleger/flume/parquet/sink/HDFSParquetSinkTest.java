@@ -47,7 +47,6 @@ public class HDFSParquetSinkTest {
 
     @Test
     public void testEventCreation() throws Exception {
-        memoryChannel.getTransaction().begin();
         testEventCreation(TEST_INPUT_1.getBytes());
         testEventCreation(TEST_INPUT_2.getBytes());
         testEventCreation(TEST_INPUT_3.getBytes());
@@ -57,10 +56,7 @@ public class HDFSParquetSinkTest {
         testEventCreation(TEST_INPUT_7.getBytes());
         testEventCreation(TEST_INPUT_8.getBytes());
         testEventCreation(TEST_INPUT_9.getBytes());
-        memoryChannel.getTransaction().commit();
-        memoryChannel.getTransaction().close();
 
-        sut.process();
         sut.process();
         sut.process();
         sut.process();
@@ -75,7 +71,10 @@ public class HDFSParquetSinkTest {
     public void testEventCreation(byte[] testDaten) throws Exception {
         Event event = new SimpleEvent();
         event.setBody(testDaten);
+        memoryChannel.getTransaction().begin();
         memoryChannel.put(event);
+        memoryChannel.getTransaction().commit();
+        memoryChannel.getTransaction().close();
     }
 
 }

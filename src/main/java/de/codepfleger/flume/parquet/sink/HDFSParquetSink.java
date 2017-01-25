@@ -101,7 +101,7 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     private ParquetSerializer createSerializer(String filePath) throws IOException {
         ParquetSerializer eventSerializer;
         eventSerializer = (ParquetSerializer) EventSerializerFactory.getInstance(serializerType, serializerContext, null);
-        Path fileToWrite = new Path(filePath);
+        Path fileToWrite = new Path(getActualFilePath(filePath));
         ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
                 .withSchema(getSchema())
                 .withCompressionCodec(CompressionCodecName.SNAPPY)
@@ -115,14 +115,17 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         return new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(WindowsLogEvent.class));
     }
 
-    private String getFilePathFromEvent(Event event) {
-        String actualFilePath = BucketPath.escapeString(filePath, event.getHeaders(), null, false, 0, 1, true);
+    private String getActualFilePath(String actualFilePath) {
         if(actualFilePath.contains("%[n]")) {
             actualFilePath = actualFilePath.replace("%[n]", "" + fileNumber.incrementAndGet());
         } else {
             actualFilePath += "." + fileNumber.incrementAndGet();
         }
         return actualFilePath;
+    }
+
+    private String getFilePathFromEvent(Event event) {
+        return BucketPath.escapeString(filePath, event.getHeaders(), null, false, 0, 1, true);
     }
 
     @Override
