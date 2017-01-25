@@ -9,7 +9,7 @@ import org.apache.parquet.hadoop.ParquetWriter;
 import java.io.IOException;
 
 public interface ParquetSerializer extends EventSerializer, Configurable {
-    void initialize(String filePath, Schema fileToWrite) throws IOException;
+    void initialize(ParquetWriter<GenericData.Record> filePath, Schema fileToWrite) throws IOException;
     ParquetWriter<GenericData.Record> getWriter();
     void close() throws IOException;
 }

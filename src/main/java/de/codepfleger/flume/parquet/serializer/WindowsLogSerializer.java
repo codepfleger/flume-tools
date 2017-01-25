@@ -7,10 +7,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.serialization.EventSerializer;
-import org.apache.hadoop.fs.Path;
-import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,14 +89,9 @@ public class WindowsLogSerializer implements ParquetSerializer {
         return false;
     }
 
-    public void initialize(String filePath, Schema schema) throws IOException {
+    public void initialize(ParquetWriter<GenericData.Record> writer, Schema schema) throws IOException {
         this.schema = schema;
-
-        Path fileToWrite = new Path(filePath);
-        writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
-                .withSchema(schema)
-                .withCompressionCodec(CompressionCodecName.SNAPPY)
-                .build();
+        this.writer = writer;
     }
 
     @Override
