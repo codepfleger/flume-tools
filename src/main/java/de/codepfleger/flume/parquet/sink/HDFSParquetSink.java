@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HDFSParquetSink extends AbstractSink implements Configurable {
     public static final String FILE_PATH_KEY = "filePath";
@@ -29,6 +30,8 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
 
     private final Object lock = new Object();
     private final Random random = new Random();
+
+    private static final AtomicBoolean processingEnabled = new AtomicBoolean(false);
 
     private SerializerLinkedHashMap serializers;
 
@@ -40,11 +43,20 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     @Override
     public synchronized void start() {
         super.start();
+        final HDFSParquetSink sink = this;
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                sink.stop();
+            }
+        });
+        processingEnabled.getAndSet(true);
     }
 
     @Override
     public synchronized void stop() {
-        if(serializers != null) {
+        processingEnabled.getAndSet(false);
+        if(serializers != null && !serializers.isEmpty()) {
             synchronized (lock) {
                 for (ParquetSerializer serializer : serializers.values()) {
                     try {
@@ -61,23 +73,26 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
 
     @Override
     public Status process() throws EventDeliveryException {
-        Channel ch = getChannel();
-        Transaction txn = ch.getTransaction();
-        txn.begin();
-        try {
-            //TODO take multiple in one transaction
-            Event event = ch.take();
-            if (event != null) {
-                getSerializer(event).write(event);
+        if(processingEnabled.get()) {
+            Channel ch = getChannel();
+            Transaction txn = ch.getTransaction();
+            txn.begin();
+            try {
+                //TODO take multiple in one transaction
+                Event event = ch.take();
+                if (event != null) {
+                    getSerializer(event).write(event);
+                }
+                txn.commit();
+                return Status.READY;
+            } catch (Throwable t) {
+                txn.rollback();
+                return Status.BACKOFF;
+            } finally {
+                txn.close();
             }
-            txn.commit();
-            return Status.READY;
-        } catch (Throwable t) {
-            txn.rollback();
-            return Status.BACKOFF;
-        } finally {
-            txn.close();
         }
+        return Status.READY;
     }
 
     private EventSerializer getSerializer(Event event) throws IOException {
