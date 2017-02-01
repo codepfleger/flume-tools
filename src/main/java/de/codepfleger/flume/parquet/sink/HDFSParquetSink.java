@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class HDFSParquetSink extends AbstractSink implements Configurable {
     public static final String FILE_PATH_KEY = "filePath";
     public static final String FILE_SIZE_KEY = "fileSize";
+    public static final String FILE_QUEUE_SIZE_KEY = "fileQueueSize";
 
     private static final Logger LOG = LoggerFactory.getLogger(HDFSParquetSink.class);
 
@@ -150,10 +151,16 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         if(filePath == null) {
             throw new IllegalStateException("filePath missing");
         }
-        uncompressedFileSize = context.getInteger(FILE_SIZE_KEY, 500000);
-        serializerType = context.getString("serializer", "TEXT");
-        serializerContext = new Context(context.getSubProperties(EventSerializer.CTX_PREFIX));
 
-        serializers = new SerializerLinkedHashMap(4);
+        uncompressedFileSize = context.getInteger(FILE_SIZE_KEY, 500000);
+
+        serializers = new SerializerLinkedHashMap(context.getInteger(FILE_QUEUE_SIZE_KEY, 2));
+
+        serializerType = context.getString("serializer");
+        if(serializerType == null) {
+            throw new IllegalStateException("filePath missing");
+        }
+
+        serializerContext = new Context(context.getSubProperties(EventSerializer.CTX_PREFIX));
     }
 }
