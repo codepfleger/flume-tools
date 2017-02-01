@@ -12,6 +12,7 @@ import org.apache.flume.serialization.EventSerializer;
 import org.apache.flume.serialization.EventSerializerFactory;
 import org.apache.flume.sink.AbstractSink;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
@@ -45,12 +46,12 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     public synchronized void start() {
         super.start();
         final HDFSParquetSink sink = this;
-        Runtime.getRuntime().addShutdownHook(new Thread() {
+        ShutdownHookManager.get().addShutdownHook(new Runnable() {
             @Override
             public void run() {
                 sink.stop();
             }
-        });
+        }, Integer.MAX_VALUE);
         processingEnabled.getAndSet(true);
     }
 
