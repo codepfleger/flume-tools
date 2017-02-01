@@ -21,13 +21,14 @@ import static de.codepfleger.flume.parquet.serializer.JsonTestData.*;
 
 public class WindowsLogSerializerTest {
     private WindowsLogSerializer sut;
+    private Schema schema;
 
     @Before
     public void startUp() throws IOException {
         sut = new WindowsLogSerializer();
         Context context = new Context();
         sut.configure(context);
-        Schema schema = new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(WindowsLogEvent.class));
+        schema = new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(WindowsLogEvent.class));
         Path fileToWrite = new Path("tmp//data" + System.currentTimeMillis() + ".parquet");
         ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
                 .withSchema(schema)
@@ -52,6 +53,11 @@ public class WindowsLogSerializerTest {
         testEventCreation(TEST_INPUT_7.getBytes());
         testEventCreation(TEST_INPUT_8.getBytes());
         testEventCreation(TEST_INPUT_9.getBytes());
+    }
+
+    @Test
+    public void createSchema() throws Exception {
+        System.out.println(schema.toString());
     }
 
     public void testEventCreation(byte[] testDaten) throws Exception {
