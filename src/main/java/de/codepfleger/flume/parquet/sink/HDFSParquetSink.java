@@ -1,6 +1,5 @@
 package de.codepfleger.flume.parquet.sink;
 
-import de.codepfleger.flume.avro.serializer.event.WindowsLogEvent;
 import de.codepfleger.flume.avro.serializer.serializer.AbstractReflectionAvroEventSerializer;
 import de.codepfleger.flume.parquet.serializer.ParquetSerializer;
 import org.apache.avro.Schema;
@@ -12,7 +11,6 @@ import org.apache.flume.serialization.EventSerializer;
 import org.apache.flume.serialization.EventSerializerFactory;
 import org.apache.flume.sink.AbstractSink;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.parquet.avro.AvroParquetWriter;
@@ -28,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HDFSParquetSink extends AbstractSink implements Configurable {
     public static final String EVENTS_PER_TRANSACTION_KEY = "eventsPerTransaction";
+    public static final String SCHEMA_KEY = "schema";
     public static final String FILE_PATH_KEY = "filePath";
     public static final String FILE_NAME_KEY = "fileName";
     public static final String FILE_SIZE_KEY = "fileSize";
@@ -53,6 +52,7 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     private Integer uncompressedFileSize;
     private String serializerType;
     private Context serializerContext;
+    private Schema schema;
 
     @Override
     public synchronized void start() {
@@ -151,14 +151,9 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         Path working = new Path(workingFilePath);
         working.getFileSystem(configuration);
         ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(working)
-                .withSchema(getSchema()).withCompressionCodec(compressionCodec).build();
-        eventSerializer.initialize(writer, getSchema());
+                .withSchema(schema).withCompressionCodec(compressionCodec).build();
+        eventSerializer.initialize(writer, schema);
         return new SerializerMapEntry(working, configuration, targetFilePath, eventSerializer);
-    }
-
-    protected Schema getSchema() {
-        //TODO event class configurable
-        return new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(WindowsLogEvent.class));
     }
 
     private String replaceRandomSalt(String fileName) {
@@ -189,6 +184,16 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         if(serializerType == null) {
             throw new IllegalStateException("serializer missing");
         }
+        String schemaClass = context.getString(SCHEMA_KEY);
+        if(schemaClass == null) {
+            throw new IllegalStateException("schema missing");
+        }
+        try {
+            schema = new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(Class.forName(schemaClass)));
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException(e);
+        }
+
 
         compressionCodec = CompressionCodecName.fromConf(context.getString(FILE_COMPRESSION_KEY, CompressionCodecName.SNAPPY.name()));
         eventsPerTransaction = context.getInteger(EVENTS_PER_TRANSACTION_KEY, 10);
@@ -196,7 +201,6 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         timeoutSeconds = context.getInteger(TIMEOUT_SECONDS_KEY, 3600);
         serializers = new SerializerLinkedHashMap(context.getInteger(FILE_QUEUE_SIZE_KEY, 2));
         serializerContext = new Context(context.getSubProperties(EventSerializer.CTX_PREFIX));
-
 
         configuration = new Configuration();
         configuration.setBoolean("fs.automatic.close", false);
