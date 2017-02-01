@@ -20,13 +20,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HDFSParquetSink extends AbstractSink implements Configurable {
+    public static final String EVENTS_PER_TRANSACTION_KEY = "eventsPerTransaction";
     public static final String FILE_PATH_KEY = "filePath";
     public static final String FILE_SIZE_KEY = "fileSize";
+    public static final String FILE_COMPRESSION_KEY = "fileSize";
     public static final String FILE_QUEUE_SIZE_KEY = "fileQueueSize";
+    public static final String TIMEOUT_SECONDS_KEY = "timeoutSeconds";
 
     private static final Logger LOG = LoggerFactory.getLogger(HDFSParquetSink.class);
 
@@ -37,6 +41,9 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
 
     private SerializerLinkedHashMap serializers;
 
+    private CompressionCodecName compressionCodec;
+    private int eventsPerTransaction;
+    private int timeoutSeconds;
     private String filePath;
     private Integer uncompressedFileSize;
     private String serializerType;
@@ -80,10 +87,11 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
             Transaction txn = ch.getTransaction();
             txn.begin();
             try {
-                //TODO take multiple in one transaction
-                Event event = ch.take();
-                if (event != null) {
-                    getSerializer(event).write(event);
+                for(int i=0; i<eventsPerTransaction; i++) {
+                    Event event = ch.take();
+                    if (event != null) {
+                        getSerializer(event).write(event);
+                    }
                 }
                 txn.commit();
                 return Status.READY;
@@ -101,11 +109,10 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         String filePath = getFilePathFromEvent(event);
         synchronized (lock) {
             ParquetSerializer eventSerializer = serializers.get(filePath);
-            if(eventSerializer != null) {
-                if(eventSerializer.getWriter().getDataSize() > uncompressedFileSize) {
-                    eventSerializer.close();
-                    serializers.remove(filePath);
-                }
+            if(isSerializerInvalid(eventSerializer)) {
+                eventSerializer.close();
+                serializers.remove(filePath);
+                eventSerializer = null;
             }
             if(eventSerializer == null) {
                 eventSerializer = createSerializer(filePath);
@@ -115,13 +122,27 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         }
     }
 
+    private boolean isSerializerInvalid(ParquetSerializer eventSerializer) {
+        if(eventSerializer != null) {
+            if(eventSerializer.getWriter().getDataSize() > uncompressedFileSize) {
+                return true;
+            }
+            long time = new Date().getTime();
+            long serializerTimeout = eventSerializer.getStartTime() + (time * 1000);
+            if(time > serializerTimeout) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private ParquetSerializer createSerializer(String filePath) throws IOException {
         ParquetSerializer eventSerializer;
         eventSerializer = (ParquetSerializer) EventSerializerFactory.getInstance(serializerType, serializerContext, null);
         Path fileToWrite = new Path(getActualFilePath(filePath));
         ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
                 .withSchema(getSchema())
-                .withCompressionCodec(CompressionCodecName.SNAPPY)
+                .withCompressionCodec(compressionCodec)
                 .build();
         eventSerializer.initialize(writer, getSchema());
         return eventSerializer;
@@ -152,16 +173,16 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         if(filePath == null) {
             throw new IllegalStateException("filePath missing");
         }
-
-        uncompressedFileSize = context.getInteger(FILE_SIZE_KEY, 500000);
-
-        serializers = new SerializerLinkedHashMap(context.getInteger(FILE_QUEUE_SIZE_KEY, 2));
-
         serializerType = context.getString("serializer");
         if(serializerType == null) {
             throw new IllegalStateException("filePath missing");
         }
 
+        compressionCodec = CompressionCodecName.fromConf(context.getString(FILE_COMPRESSION_KEY, CompressionCodecName.SNAPPY.name()));
+        eventsPerTransaction = context.getInteger(EVENTS_PER_TRANSACTION_KEY, 10);
+        uncompressedFileSize = context.getInteger(FILE_SIZE_KEY, 500000);
+        timeoutSeconds = context.getInteger(TIMEOUT_SECONDS_KEY, 3600);
+        serializers = new SerializerLinkedHashMap(context.getInteger(FILE_QUEUE_SIZE_KEY, 2));
         serializerContext = new Context(context.getSubProperties(EventSerializer.CTX_PREFIX));
     }
 }
