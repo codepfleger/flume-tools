@@ -21,13 +21,14 @@ import static de.codepfleger.flume.parquet.serializer.SyslogTestData.TEST_INPUT_
 
 public class SyslogSerializerTest {
     private SyslogSerializer sut;
+    private Schema schema;
 
     @Before
     public void startUp() throws IOException {
         sut = new SyslogSerializer();
         Context context = new Context();
         sut.configure(context);
-        Schema schema = new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(SyslogEvent.class));
+        schema = new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(SyslogEvent.class));
         Path fileToWrite = new Path("tmp//data" + System.currentTimeMillis() + ".parquet");
         ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
                 .withSchema(schema)
@@ -44,6 +45,11 @@ public class SyslogSerializerTest {
     @Test
     public void testEventCreation() throws Exception {
         testEventCreation(TEST_INPUT_1.getBytes());
+    }
+
+    @Test
+    public void createSchema() throws Exception {
+        System.out.println(schema.toString());
     }
 
     public void testEventCreation(byte[] testDaten) throws Exception {
