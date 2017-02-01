@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class HDFSParquetSink extends AbstractSink implements Configurable {
     public static final String EVENTS_PER_TRANSACTION_KEY = "eventsPerTransaction";
     public static final String FILE_PATH_KEY = "filePath";
+    public static final String FILE_NAME_KEY = "fileName";
     public static final String FILE_SIZE_KEY = "fileSize";
     public static final String FILE_COMPRESSION_KEY = "fileCompression";
     public static final String FILE_QUEUE_SIZE_KEY = "fileQueueSize";
@@ -44,6 +45,7 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     private CompressionCodecName compressionCodec;
     private int eventsPerTransaction;
     private int timeoutSeconds;
+    private String fileName;
     private String filePath;
     private Integer uncompressedFileSize;
     private String serializerType;
@@ -106,17 +108,19 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     }
 
     private EventSerializer getSerializer(Event event) throws IOException {
-        String filePath = getFilePathFromEvent(event);
+        String replacedPath = replaceWildcards(filePath, event);
+        String replacedName = replaceWildcards(fileName, event);
+        String path = replacedPath + replacedName;
         synchronized (lock) {
-            SerializerMapEntry eventSerializer = serializers.get(filePath);
+            SerializerMapEntry eventSerializer = serializers.get(path);
             if(isSerializerInvalid(eventSerializer)) {
                 eventSerializer.close();
-                serializers.remove(filePath);
+                serializers.remove(path);
                 eventSerializer = null;
             }
             if(eventSerializer == null) {
-                eventSerializer = createSerializer(filePath);
-                serializers.put(filePath, eventSerializer);
+                eventSerializer = createSerializer(replacedPath, replacedName);
+                serializers.put(path, eventSerializer);
             }
             return eventSerializer.getSerializer();
         }
@@ -136,11 +140,11 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         return false;
     }
 
-    private SerializerMapEntry createSerializer(String filePath) throws IOException {
-        ParquetSerializer eventSerializer;
-        eventSerializer = (ParquetSerializer) EventSerializerFactory.getInstance(serializerType, serializerContext, null);
-        String targetFilePath = getActualFilePath(filePath);
-        String workingFilePath = "_" + targetFilePath;
+    private SerializerMapEntry createSerializer(String replacedPath, String replacedName) throws IOException {
+        ParquetSerializer eventSerializer = (ParquetSerializer) EventSerializerFactory.getInstance(serializerType, serializerContext, null);
+        String actualFileName = replaceRandomSalt(replacedName);
+        String workingFilePath = replacedPath + "_" + actualFileName;
+        String targetFilePath = replacedPath + actualFileName;
         ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(new Path(workingFilePath))
                 .withSchema(getSchema()).withCompressionCodec(compressionCodec).build();
         eventSerializer.initialize(writer, getSchema());
@@ -152,18 +156,18 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         return new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(WindowsLogEvent.class));
     }
 
-    private String getActualFilePath(String actualFilePath) {
+    private String replaceRandomSalt(String fileName) {
         int nextInt = Math.abs(random.nextInt());
-        if(actualFilePath.contains("%[n]")) {
-            actualFilePath = actualFilePath.replace("%[n]", "" + nextInt);
+        if(fileName.contains("%[n]")) {
+            fileName = fileName.replace("%[n]", "" + nextInt);
         } else {
-            actualFilePath += "." + nextInt;
+            fileName += "." + nextInt;
         }
-        return actualFilePath;
+        return fileName;
     }
 
-    private String getFilePathFromEvent(Event event) {
-        return BucketPath.escapeString(filePath, event.getHeaders(), null, false, 0, 1, true);
+    private String replaceWildcards(String value, Event event) {
+        return BucketPath.escapeString(value, event.getHeaders(), null, false, 0, 1, true);
     }
 
     @Override
@@ -172,9 +176,13 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         if(filePath == null) {
             throw new IllegalStateException("filePath missing");
         }
+        fileName = context.getString(FILE_NAME_KEY);
+        if(fileName == null) {
+            throw new IllegalStateException("fileName missing");
+        }
         serializerType = context.getString("serializer");
         if(serializerType == null) {
-            throw new IllegalStateException("filePath missing");
+            throw new IllegalStateException("serializer missing");
         }
 
         compressionCodec = CompressionCodecName.fromConf(context.getString(FILE_COMPRESSION_KEY, CompressionCodecName.SNAPPY.name()));
