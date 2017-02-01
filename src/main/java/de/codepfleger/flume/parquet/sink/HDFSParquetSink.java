@@ -131,10 +131,11 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     }
 
     private String getActualFilePath(String actualFilePath) {
+        int nextInt = Math.abs(random.nextInt());
         if(actualFilePath.contains("%[n]")) {
-            actualFilePath = actualFilePath.replace("%[n]", "" + random.nextInt());
+            actualFilePath = actualFilePath.replace("%[n]", "" + nextInt);
         } else {
-            actualFilePath += "." + random.nextInt();
+            actualFilePath += "." + nextInt;
         }
         return actualFilePath;
     }
