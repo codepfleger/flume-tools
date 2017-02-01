@@ -7,11 +7,33 @@
     <artifactId>flume-parquet-sink</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <name>Flume Parquet Sink</name>
+    <description>Flume Parquet Sink write events directly to parquet files in HDFS.</description>
+    <url>https://github.com/codepfleger/flume-parquet-sink.git</url>
+    <inceptionYear>2017</inceptionYear>
+
     <scm>
         <connection>scm:git:git://github.com/codepfleger/flume-parquet-sink.git</connection>
         <developerConnection>scm:git:git@github.com:codepfleger/flume-parquet-sink.git</developerConnection>
         <url>https://github.com/codepfleger/flume-parquet-sink.git</url>
+        <tag>HEAD</tag>
     </scm>
+
+    <developers>
+        <developer>
+            <id>codepfleger</id>
+            <name>Frank Pfleger</name>
+            <email>mail@codepfleger.de</email>
+            <timezone>+1</timezone>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>APACHE LICENSE 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
 
     <dependencies>
         <dependency>
@@ -120,7 +142,7 @@
     </build>
     <profiles>
         <profile>
-            <id>sonartype</id>
+            <id>release</id>
 
             <distributionManagement>
                 <snapshotRepository>
@@ -139,12 +161,8 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-release-plugin</artifactId>
                         <configuration>
-                            <mavenExecutorId>forked-path</mavenExecutorId>
-                            <useReleaseProfile>false</useReleaseProfile>
-                            <arguments>-Psonatype-oss-release</arguments>
-                            <autoVersionSubmodules>true</autoVersionSubmodules>
-                            <releaseProfiles>release</releaseProfiles>
-                            <goals>deploy</goals>
+                            <suppressCommitBeforeTag>false</suppressCommitBeforeTag>
+                            <remoteTagging>false</remoteTagging>
                         </configuration>
                     </plugin>
                     <plugin>
