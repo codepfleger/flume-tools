@@ -1,6 +1,5 @@
 package de.codepfleger.flume.parquet.sink;
 
-import de.codepfleger.flume.parquet.serializer.ParquetSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,7 +7,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class SerializerLinkedHashMap extends LinkedHashMap<String, ParquetSerializer> {
+public class SerializerLinkedHashMap extends LinkedHashMap<String, SerializerMapEntry> {
     private static final Logger LOG = LoggerFactory.getLogger(SerializerLinkedHashMap.class);
 
     private final int maxOpenFiles;
@@ -19,7 +18,7 @@ public class SerializerLinkedHashMap extends LinkedHashMap<String, ParquetSerial
     }
 
     @Override
-    protected boolean removeEldestEntry(Map.Entry<String, ParquetSerializer> eldest) {
+    protected boolean removeEldestEntry(Map.Entry<String, SerializerMapEntry> eldest) {
         if (size() > maxOpenFiles) {
             try {
                 eldest.getValue().close();

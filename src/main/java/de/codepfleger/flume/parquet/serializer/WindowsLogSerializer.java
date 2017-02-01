@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -25,7 +24,6 @@ public class WindowsLogSerializer implements ParquetSerializer {
 
     private ParquetWriter<GenericData.Record> writer;
     private Schema schema;
-    private long startTime;
 
     public WindowsLogSerializer() {
         this.mapper = new ObjectMapper();
@@ -33,7 +31,6 @@ public class WindowsLogSerializer implements ParquetSerializer {
 
     @Override
     public void configure(Context context) {
-        startTime = context.getLong("startTime", new Date().getTime());
     }
 
     @Override
@@ -99,11 +96,6 @@ public class WindowsLogSerializer implements ParquetSerializer {
     @Override
     public ParquetWriter<GenericData.Record> getWriter() {
         return writer;
-    }
-
-    @Override
-    public long getStartTime() {
-        return startTime;
     }
 
     @Override
