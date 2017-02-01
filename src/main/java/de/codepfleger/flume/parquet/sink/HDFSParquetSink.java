@@ -1,8 +1,6 @@
 package de.codepfleger.flume.parquet.sink;
 
-import de.codepfleger.flume.avro.serializer.serializer.AbstractReflectionAvroEventSerializer;
 import de.codepfleger.flume.parquet.serializer.ParquetSerializer;
-import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.flume.*;
 import org.apache.flume.conf.Configurable;
@@ -52,7 +50,6 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     private Integer uncompressedFileSize;
     private String serializerType;
     private Context serializerContext;
-    private Schema schema;
 
     @Override
     public synchronized void start() {
@@ -151,8 +148,8 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         Path working = new Path(workingFilePath);
         working.getFileSystem(configuration);
         ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(working)
-                .withSchema(schema).withCompressionCodec(compressionCodec).build();
-        eventSerializer.initialize(writer, schema);
+                .withSchema(eventSerializer.getSchema()).withCompressionCodec(compressionCodec).build();
+        eventSerializer.initialize(writer);
         return new SerializerMapEntry(working, configuration, targetFilePath, eventSerializer);
     }
 
@@ -183,15 +180,6 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         serializerType = context.getString("serializer");
         if(serializerType == null) {
             throw new IllegalStateException("serializer missing");
-        }
-        String schemaClass = context.getString(SCHEMA_KEY);
-        if(schemaClass == null) {
-            throw new IllegalStateException("schema missing");
-        }
-        try {
-            schema = new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(Class.forName(schemaClass)));
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(e);
         }
 
 
