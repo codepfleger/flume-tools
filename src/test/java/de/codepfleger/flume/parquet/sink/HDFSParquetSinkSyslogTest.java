@@ -1,7 +1,6 @@
 package de.codepfleger.flume.parquet.sink;
 
-import de.codepfleger.flume.avro.serializer.event.WindowsLogEvent;
-import de.codepfleger.flume.parquet.serializer.WindowsLogSerializer;
+import de.codepfleger.flume.parquet.serializer.SyslogSerializer;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.channel.MemoryChannel;
@@ -12,9 +11,9 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-import static de.codepfleger.flume.parquet.serializer.JsonTestData.*;
+import static de.codepfleger.flume.parquet.serializer.SyslogTestData.TEST_INPUT_1;
 
-public class HDFSParquetSinkTest {
+public class HDFSParquetSinkSyslogTest {
     private HDFSParquetSink sut;
     private MemoryChannel memoryChannel;
 
@@ -22,14 +21,13 @@ public class HDFSParquetSinkTest {
     public void startUp() throws IOException {
         String filePath = "tmp/";
         String fileName = "data.%[n].parquet";
-        String serializerType = WindowsLogSerializer.Builder.class.getName();
+        String serializerType = SyslogSerializer.Builder.class.getName();
 
         Context context = new Context();
         memoryChannel = new MemoryChannel();
         memoryChannel.configure(new Context());
         memoryChannel.start();
 
-        context.put(HDFSParquetSink.SCHEMA_KEY, WindowsLogEvent.class.getName());
         context.put(HDFSParquetSink.FILE_PATH_KEY, filePath);
         context.put(HDFSParquetSink.FILE_NAME_KEY, fileName);
         context.put(HDFSParquetSink.FILE_SIZE_KEY, "3000");
@@ -51,23 +49,7 @@ public class HDFSParquetSinkTest {
     @Test
     public void testEventCreation() throws Exception {
         testEventCreation(TEST_INPUT_1.getBytes());
-        testEventCreation(TEST_INPUT_2.getBytes());
-        testEventCreation(TEST_INPUT_3.getBytes());
-        testEventCreation(TEST_INPUT_4.getBytes());
-        testEventCreation(TEST_INPUT_5.getBytes());
-        testEventCreation(TEST_INPUT_6.getBytes());
-        testEventCreation(TEST_INPUT_7.getBytes());
-        testEventCreation(TEST_INPUT_8.getBytes());
-        testEventCreation(TEST_INPUT_9.getBytes());
 
-        sut.process();
-        sut.process();
-        sut.process();
-        sut.process();
-        sut.process();
-        sut.process();
-        sut.process();
-        sut.process();
         sut.process();
     }
 

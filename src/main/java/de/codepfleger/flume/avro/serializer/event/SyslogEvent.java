@@ -8,5 +8,6 @@ public class SyslogEvent {
     public Integer Facility;
     public String host;
     public String timestamp;
+    public String Message;
     public Map<String, Object> dynamic = new HashMap();
 }

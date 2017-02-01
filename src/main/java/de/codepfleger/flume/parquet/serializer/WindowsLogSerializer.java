@@ -7,7 +7,6 @@ import org.apache.avro.generic.GenericData;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.serialization.EventSerializer;
-import org.apache.parquet.hadoop.ParquetWriter;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,28 +16,14 @@ import java.io.OutputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class WindowsLogSerializer implements ParquetSerializer {
+public class WindowsLogSerializer extends AbstractParquetSerializer {
     private static final Logger LOG = LoggerFactory.getLogger(WindowsLogSerializer.class);
 
     private final ObjectMapper mapper;
 
-    private ParquetWriter<GenericData.Record> writer;
-    private Schema schema;
-
     public WindowsLogSerializer() {
+        super(new Schema.Parser().parse(AbstractReflectionAvroEventSerializer.createSchema(WindowsLogEvent.class)));
         this.mapper = new ObjectMapper();
-    }
-
-    @Override
-    public void configure(Context context) {
-    }
-
-    @Override
-    public void afterCreate() throws IOException {
-    }
-
-    @Override
-    public void afterReopen() throws IOException {
     }
 
     @Override
@@ -50,7 +35,7 @@ public class WindowsLogSerializer implements ParquetSerializer {
             AbstractReflectionAvroEventSerializer.setFieldsAndRemove(windowsLogEvent, dataMap);
             windowsLogEvent.dynamic.putAll(dataMap);
 
-            GenericData.Record record = new GenericData.Record(schema);
+            GenericData.Record record = new GenericData.Record(getSchema());
             record.put("EventTime", windowsLogEvent.EventTime);
             record.put("Hostname", windowsLogEvent.Hostname);
             record.put("EventType", windowsLogEvent.EventType);
@@ -68,39 +53,6 @@ public class WindowsLogSerializer implements ParquetSerializer {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private synchronized void writeRecord(GenericData.Record record) throws IOException {
-        writer.write(record);
-    }
-
-    @Override
-    public void flush() throws IOException {
-    }
-
-    @Override
-    public void beforeClose() throws IOException {
-        writer.close();
-    }
-
-    @Override
-    public boolean supportsReopen() {
-        return false;
-    }
-
-    public void initialize(ParquetWriter<GenericData.Record> writer, Schema schema) throws IOException {
-        this.schema = schema;
-        this.writer = writer;
-    }
-
-    @Override
-    public ParquetWriter<GenericData.Record> getWriter() {
-        return writer;
-    }
-
-    @Override
-    public void close() throws IOException {
-        beforeClose();
     }
 
     public static class Builder implements EventSerializer.Builder {
