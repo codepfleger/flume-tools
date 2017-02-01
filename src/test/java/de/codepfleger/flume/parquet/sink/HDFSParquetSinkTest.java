@@ -1,5 +1,6 @@
 package de.codepfleger.flume.parquet.sink;
 
+import de.codepfleger.flume.avro.serializer.event.WindowsLogEvent;
 import de.codepfleger.flume.parquet.serializer.WindowsLogSerializer;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
@@ -28,6 +29,7 @@ public class HDFSParquetSinkTest {
         memoryChannel.configure(new Context());
         memoryChannel.start();
 
+        context.put(HDFSParquetSink.SCHEMA_KEY, WindowsLogEvent.class.getName());
         context.put(HDFSParquetSink.FILE_PATH_KEY, filePath);
         context.put(HDFSParquetSink.FILE_NAME_KEY, fileName);
         context.put(HDFSParquetSink.FILE_SIZE_KEY, "3000");
