@@ -28,7 +28,7 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     public static final String EVENTS_PER_TRANSACTION_KEY = "eventsPerTransaction";
     public static final String FILE_PATH_KEY = "filePath";
     public static final String FILE_SIZE_KEY = "fileSize";
-    public static final String FILE_COMPRESSION_KEY = "fileSize";
+    public static final String FILE_COMPRESSION_KEY = "fileCompression";
     public static final String FILE_QUEUE_SIZE_KEY = "fileQueueSize";
     public static final String TIMEOUT_SECONDS_KEY = "timeoutSeconds";
 
@@ -65,9 +65,9 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     @Override
     public synchronized void stop() {
         processingEnabled.getAndSet(false);
-        if(serializers != null && !serializers.isEmpty()) {
-            synchronized (lock) {
-                for (ParquetSerializer serializer : serializers.values()) {
+        synchronized (lock) {
+            if(serializers != null && !serializers.isEmpty()) {
+                for (SerializerMapEntry serializer : serializers.values()) {
                     try {
                         serializer.close();
                     } catch (IOException e) {
@@ -108,7 +108,7 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     private EventSerializer getSerializer(Event event) throws IOException {
         String filePath = getFilePathFromEvent(event);
         synchronized (lock) {
-            ParquetSerializer eventSerializer = serializers.get(filePath);
+            SerializerMapEntry eventSerializer = serializers.get(filePath);
             if(isSerializerInvalid(eventSerializer)) {
                 eventSerializer.close();
                 serializers.remove(filePath);
@@ -118,17 +118,17 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
                 eventSerializer = createSerializer(filePath);
                 serializers.put(filePath, eventSerializer);
             }
-            return eventSerializer;
+            return eventSerializer.getSerializer();
         }
     }
 
-    private boolean isSerializerInvalid(ParquetSerializer eventSerializer) {
+    private boolean isSerializerInvalid(SerializerMapEntry eventSerializer) {
         if(eventSerializer != null) {
-            if(eventSerializer.getWriter().getDataSize() > uncompressedFileSize) {
+            if(eventSerializer.getSerializer().getWriter().getDataSize() > uncompressedFileSize) {
                 return true;
             }
             long time = new Date().getTime();
-            long serializerTimeout = eventSerializer.getStartTime() + (time * 1000);
+            long serializerTimeout = eventSerializer.getStartTime() + (timeoutSeconds * 1000);
             if(time > serializerTimeout) {
                 return true;
             }
@@ -136,16 +136,15 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         return false;
     }
 
-    private ParquetSerializer createSerializer(String filePath) throws IOException {
+    private SerializerMapEntry createSerializer(String filePath) throws IOException {
         ParquetSerializer eventSerializer;
         eventSerializer = (ParquetSerializer) EventSerializerFactory.getInstance(serializerType, serializerContext, null);
-        Path fileToWrite = new Path(getActualFilePath(filePath));
-        ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(fileToWrite)
-                .withSchema(getSchema())
-                .withCompressionCodec(compressionCodec)
-                .build();
+        String targetFilePath = getActualFilePath(filePath);
+        String workingFilePath = "_" + targetFilePath;
+        ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(new Path(workingFilePath))
+                .withSchema(getSchema()).withCompressionCodec(compressionCodec).build();
         eventSerializer.initialize(writer, getSchema());
-        return eventSerializer;
+        return new SerializerMapEntry(workingFilePath, targetFilePath, eventSerializer);
     }
 
     protected Schema getSchema() {
