@@ -9,13 +9,15 @@ import java.io.IOException;
 import java.util.Date;
 
 public class SerializerMapEntry {
-    private String workingPath;
+    private Path workingPath;
+    private Configuration configuration;
     private String targetPath;
     private ParquetSerializer serializer;
     private long startTime;
 
-    public SerializerMapEntry(String workingPath, String targetPath, ParquetSerializer serializer) {
+    public SerializerMapEntry(Path workingPath, Configuration configuration, String targetPath, ParquetSerializer serializer) {
         this.workingPath = workingPath;
+        this.configuration = configuration;
         this.targetPath = targetPath;
         this.serializer = serializer;
         this.startTime = new Date().getTime();
@@ -31,9 +33,8 @@ public class SerializerMapEntry {
 
     public void close() throws IOException {
         serializer.close();
-        FileSystem fileSystem = FileSystem.get(new Configuration());
-        final Path srcPath = new Path(workingPath);
-        final Path dstPath = new Path(targetPath);
-        fileSystem.rename(srcPath, dstPath);
+        FileSystem fileSystem = workingPath.getFileSystem(configuration);
+        Path dstPath = new Path(targetPath);
+        fileSystem.rename(workingPath, dstPath);
     }
 }
