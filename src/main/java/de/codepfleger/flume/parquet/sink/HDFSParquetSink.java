@@ -11,6 +11,8 @@ import org.apache.flume.formatter.output.BucketPath;
 import org.apache.flume.serialization.EventSerializer;
 import org.apache.flume.serialization.EventSerializerFactory;
 import org.apache.flume.sink.AbstractSink;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.parquet.avro.AvroParquetWriter;
@@ -41,6 +43,7 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     private static final AtomicBoolean processingEnabled = new AtomicBoolean(false);
 
     private SerializerLinkedHashMap serializers;
+    private Configuration configuration;
 
     private CompressionCodecName compressionCodec;
     private int eventsPerTransaction;
@@ -145,10 +148,12 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         String actualFileName = replaceRandomSalt(replacedName);
         String workingFilePath = replacedPath + "_" + actualFileName;
         String targetFilePath = replacedPath + actualFileName;
-        ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(new Path(workingFilePath))
+        Path working = new Path(workingFilePath);
+        working.getFileSystem(configuration);
+        ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(working)
                 .withSchema(getSchema()).withCompressionCodec(compressionCodec).build();
         eventSerializer.initialize(writer, getSchema());
-        return new SerializerMapEntry(workingFilePath, targetFilePath, eventSerializer);
+        return new SerializerMapEntry(working, configuration, targetFilePath, eventSerializer);
     }
 
     protected Schema getSchema() {
@@ -191,5 +196,9 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         timeoutSeconds = context.getInteger(TIMEOUT_SECONDS_KEY, 3600);
         serializers = new SerializerLinkedHashMap(context.getInteger(FILE_QUEUE_SIZE_KEY, 2));
         serializerContext = new Context(context.getSubProperties(EventSerializer.CTX_PREFIX));
+
+
+        configuration = new Configuration();
+        configuration.setBoolean("fs.automatic.close", false);
     }
 }
