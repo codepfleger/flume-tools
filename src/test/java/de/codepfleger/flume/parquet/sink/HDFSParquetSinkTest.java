@@ -19,7 +19,8 @@ public class HDFSParquetSinkTest {
 
     @Before
     public void startUp() throws IOException {
-        String filePath = "tmp//data" + System.currentTimeMillis() + ".parquet";
+        String filePath = "tmp/";
+        String fileName = "data.%[n].parquet";
         String serializerType = WindowsLogSerializer.Builder.class.getName();
 
         Context context = new Context();
@@ -28,7 +29,9 @@ public class HDFSParquetSinkTest {
         memoryChannel.start();
 
         context.put(HDFSParquetSink.FILE_PATH_KEY, filePath);
+        context.put(HDFSParquetSink.FILE_NAME_KEY, fileName);
         context.put(HDFSParquetSink.FILE_SIZE_KEY, "3000");
+        context.put(HDFSParquetSink.EVENTS_PER_TRANSACTION_KEY, "1");
         context.put("serializer", serializerType);
 
         sut = new HDFSParquetSink();
@@ -74,5 +77,4 @@ public class HDFSParquetSinkTest {
         memoryChannel.getTransaction().commit();
         memoryChannel.getTransaction().close();
     }
-
 }
