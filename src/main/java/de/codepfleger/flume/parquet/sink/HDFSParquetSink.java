@@ -24,10 +24,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HDFSParquetSink extends AbstractSink implements Configurable {
     public static final String EVENTS_PER_TRANSACTION_KEY = "eventsPerTransaction";
-    public static final String SCHEMA_KEY = "schema";
     public static final String FILE_PATH_KEY = "filePath";
     public static final String FILE_NAME_KEY = "fileName";
     public static final String FILE_SIZE_KEY = "fileSize";
+    public static final String FILE_PAGE_SIZE_KEY = "pageSize";
+    public static final String FILE_BLOCK_SIZE_KEY = "blockSize";
     public static final String FILE_COMPRESSION_KEY = "fileCompression";
     public static final String FILE_QUEUE_SIZE_KEY = "fileQueueSize";
     public static final String TIMEOUT_SECONDS_KEY = "timeoutSeconds";
@@ -48,6 +49,8 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
     private String fileName;
     private String filePath;
     private Integer uncompressedFileSize;
+    private Integer uncompressedPageSize;
+    private Integer uncompressedBlockSize;
     private String serializerType;
     private Context serializerContext;
 
@@ -148,7 +151,11 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         Path working = new Path(workingFilePath);
         working.getFileSystem(configuration);
         ParquetWriter<GenericData.Record> writer = AvroParquetWriter.<GenericData.Record>builder(working)
-                .withSchema(eventSerializer.getSchema()).withCompressionCodec(compressionCodec).build();
+                .withSchema(eventSerializer.getSchema())
+                .withCompressionCodec(compressionCodec)
+                .withPageSize(uncompressedPageSize)
+                .withRowGroupSize(uncompressedBlockSize)
+                .build();
         eventSerializer.initialize(writer);
         return new SerializerMapEntry(working, configuration, targetFilePath, eventSerializer);
     }
@@ -186,6 +193,8 @@ public class HDFSParquetSink extends AbstractSink implements Configurable {
         compressionCodec = CompressionCodecName.fromConf(context.getString(FILE_COMPRESSION_KEY, CompressionCodecName.SNAPPY.name()));
         eventsPerTransaction = context.getInteger(EVENTS_PER_TRANSACTION_KEY, 10);
         uncompressedFileSize = context.getInteger(FILE_SIZE_KEY, 500000);
+        uncompressedPageSize = context.getInteger(FILE_PAGE_SIZE_KEY, ParquetWriter.DEFAULT_PAGE_SIZE);
+        uncompressedBlockSize = context.getInteger(FILE_BLOCK_SIZE_KEY, ParquetWriter.DEFAULT_BLOCK_SIZE);
         timeoutSeconds = context.getInteger(TIMEOUT_SECONDS_KEY, 3600);
         serializers = new SerializerLinkedHashMap(context.getInteger(FILE_QUEUE_SIZE_KEY, 2));
         serializerContext = new Context(context.getSubProperties(EventSerializer.CTX_PREFIX));
