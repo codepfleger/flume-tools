@@ -5,7 +5,6 @@
 https://github.com/codepfleger/flume-parquet-sink
 
 TODO:
-2. Paging in Parquet Files
-3. Logging verbessern zum Fehlerhandling und Analyse
-5. Schema UID in Filename ermöglichen
-6. Dokumentation
+1. Logging verbessern zum Fehlerhandling und Analyse
+2. Schema UID in Filename ermöglichen
+3. Dokumentation
