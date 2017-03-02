@@ -1,5 +1,7 @@
 # flume-parquet-sink
 
+[![Build Status](https://travis-ci.org/codepfleger/flume-parquet-sink.svg?branch=master)](https://travis-ci.org/codepfleger/flume-parquet-sink)
+
 **Public Home**
 
 https://github.com/codepfleger/flume-parquet-sink
