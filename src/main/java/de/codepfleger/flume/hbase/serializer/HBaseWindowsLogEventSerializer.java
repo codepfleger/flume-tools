@@ -58,17 +58,17 @@ public class HBaseWindowsLogEventSerializer implements HbaseEventSerializer {
             windowsLogEvent.dynamic.putAll(dataMap);
 
             Put e = new Put(getRowKey(windowsLogEvent.Hostname));
-            e.addColumn(cf, "EventTime".getBytes(charset), windowsLogEvent.EventTime.getBytes(charset));
-            e.addColumn(cf, "Hostname".getBytes(charset), windowsLogEvent.Hostname.getBytes(charset));
-            e.addColumn(cf, "EventType".getBytes(charset), windowsLogEvent.EventType.getBytes(charset));
-            e.addColumn(cf, "Severity".getBytes(charset), windowsLogEvent.Severity.getBytes(charset));
-            e.addColumn(cf, "SourceModuleName".getBytes(charset), windowsLogEvent.SourceModuleName.getBytes(charset));
-            e.addColumn(cf, "UserID".getBytes(charset), windowsLogEvent.UserID.getBytes(charset));
-            e.addColumn(cf, "ProcessID".getBytes(charset), ("" + windowsLogEvent.ProcessID).getBytes(charset));
-            e.addColumn(cf, "Domain".getBytes(charset), windowsLogEvent.Domain.getBytes(charset));
-            e.addColumn(cf, "EventReceivedTime".getBytes(charset), windowsLogEvent.EventReceivedTime.getBytes(charset));
-            e.addColumn(cf, "Path".getBytes(charset), windowsLogEvent.Path.getBytes(charset));
-            e.addColumn(cf, "Message".getBytes(charset), windowsLogEvent.Message.getBytes(charset));
+            e.addColumn(cf, "EventTime".getBytes(charset), getBytes(windowsLogEvent.EventTime));
+            e.addColumn(cf, "Hostname".getBytes(charset), getBytes(windowsLogEvent.Hostname));
+            e.addColumn(cf, "EventType".getBytes(charset), getBytes(windowsLogEvent.EventType));
+            e.addColumn(cf, "Severity".getBytes(charset), getBytes(windowsLogEvent.Severity));
+            e.addColumn(cf, "SourceModuleName".getBytes(charset), getBytes(windowsLogEvent.SourceModuleName));
+            e.addColumn(cf, "UserID".getBytes(charset), getBytes(windowsLogEvent.UserID));
+            e.addColumn(cf, "ProcessID".getBytes(charset), getBytes(("" + windowsLogEvent.ProcessID)));
+            e.addColumn(cf, "Domain".getBytes(charset), getBytes(windowsLogEvent.Domain));
+            e.addColumn(cf, "EventReceivedTime".getBytes(charset), getBytes(windowsLogEvent.EventReceivedTime));
+            e.addColumn(cf, "Path".getBytes(charset), getBytes(windowsLogEvent.Path));
+            e.addColumn(cf, "Message".getBytes(charset), getBytes(windowsLogEvent.Message));
 //            e.addColumn(cf, "dynamic".getBytes(charset), ("" + windowsLogEvent.dynamic).getBytes(charset));
             actions.add(e);
 
@@ -76,6 +76,10 @@ public class HBaseWindowsLogEventSerializer implements HbaseEventSerializer {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private byte[] getBytes(String object) {
+        return object == null ? null : object.getBytes(charset);
     }
 
     @Override
