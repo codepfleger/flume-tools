@@ -1,3 +1,4 @@
+before_script: cd flume-tools-parent
 language: java
 jdk:
   - oraclejdk7
