@@ -1,10 +1,11 @@
-# flume-parquet-sink
+# flume-tools
 
 **Public Home**
 
-https://github.com/codepfleger/flume-parquet-sink
+https://github.com/codepfleger/flume-tools
 
-TODO:
-1. Logging verbessern zum Fehlerhandling und Analyse
-2. Schema UID in Filename ermöglichen
-3. Dokumentation
+This is a compilation of helpers to ease using flume for data ingestion.
+
+Parquet Sink: A sink that allows the direct creating of parquet files in HDFS.
+
+TODO
