@@ -42,6 +42,7 @@
         <module>../flume-avro-serializer</module>
         <module>../flume-hbase-serializer</module>
         <module>../flume-parquet-sink</module>
+        <module>../flume-tools</module>
     </modules>
 
     <properties>
@@ -61,6 +62,21 @@
             <dependency>
                 <groupId>de.codepfleger</groupId>
                 <artifactId>flume-tools-commons</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.codepfleger</groupId>
+                <artifactId>flume-avro-serializer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.codepfleger</groupId>
+                <artifactId>flume-hbase-serializer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.codepfleger</groupId>
+                <artifactId>flume-parquet-sink</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
