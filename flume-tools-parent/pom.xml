@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>de.codepfleger</groupId>
+    <artifactId>flume-tools-parent</artifactId>
+    <version>2.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Flume Tools</name>
+    <description>Flume Tools to enable additional feature like Avro and HBase Serialization or a direct parquet sink.</description>
+    <url>https://github.com/codepfleger/flume-tools.git</url>
+    <inceptionYear>2017</inceptionYear>
+
+    <scm>
+        <connection>scm:git:git://github.com/codepfleger/flume-tools.git</connection>
+        <developerConnection>scm:git:git@github.com:codepfleger/flume-tools.git</developerConnection>
+        <url>https://github.com/codepfleger/flume-tools.git</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>codepfleger</id>
+            <name>Frank Pfleger</name>
+            <email>mail@codepfleger.de</email>
+            <timezone>+1</timezone>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>APACHE LICENSE 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
+    <modules>
+        <module>../flume-tools-commons</module>
+        <module>../flume-avro-serializer</module>
+        <module>../flume-hbase-serializer</module>
+        <module>../flume-parquet-sink</module>
+        <module>../flume-tools</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+        <flume-ng-core.version>1.6.0</flume-ng-core.version>
+        <parquet.version>1.8.1</parquet.version>
+        <hadoop-common.version>2.6.0</hadoop-common.version>
+        <hbase-client.version>1.2.1</hbase-client.version>
+        <hadoop-core.version>1.2.1</hadoop-core.version>
+        <jackson-core-asl.version>1.8.8</jackson-core-asl.version>
+        <junit.version>4.8.1</junit.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>de.codepfleger</groupId>
+                <artifactId>flume-tools-commons</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.codepfleger</groupId>
+                <artifactId>flume-avro-serializer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.codepfleger</groupId>
+                <artifactId>flume-hbase-serializer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.codepfleger</groupId>
+                <artifactId>flume-parquet-sink</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.flume</groupId>
+                <artifactId>flume-ng-core</artifactId>
+                <version>${flume-ng-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.flume.flume-ng-sinks</groupId>
+                <artifactId>flume-hdfs-sink</artifactId>
+                <version>${flume-ng-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.flume.flume-ng-sinks</groupId>
+                <artifactId>flume-ng-hbase-sink</artifactId>
+                <version>${flume-ng-core.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-core</artifactId>
+                <version>${hadoop-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hbase</groupId>
+                <artifactId>hbase-client</artifactId>
+                <version>${hbase-client.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-common</artifactId>
+                <version>${hadoop-common.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.parquet</groupId>
+                <artifactId>parquet-avro</artifactId>
+                <version>${parquet.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.parquet</groupId>
+                <artifactId>parquet-hadoop</artifactId>
+                <version>${parquet.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.codehaus.jackson</groupId>
+                <artifactId>jackson-core-asl</artifactId>
+                <version>${jackson-core-asl.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+                <repository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+                </repository>
+            </distributionManagement>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-release-plugin</artifactId>
+                        <configuration>
+                            <suppressCommitBeforeTag>false</suppressCommitBeforeTag>
+                            <remoteTagging>false</remoteTagging>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.5</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
