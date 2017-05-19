@@ -1,0 +1,5 @@
+before_script:
+  - export JAVA_HOME="/opt/jdk1.8.0_101/"
+
+build:
+  script: "cd flume-tools-parent; mvn clean test -B"
