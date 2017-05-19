@@ -1,5 +1,6 @@
 # flume-tools
 
+[![Build Status](https://travis-ci.org/codepfleger/flume-tools.svg?branch=master)](https://travis-ci.org/codepfleger/flume-tools)
 
 **Public Home**
 
