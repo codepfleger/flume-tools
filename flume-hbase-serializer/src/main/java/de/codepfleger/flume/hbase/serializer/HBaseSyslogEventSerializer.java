@@ -72,7 +72,9 @@ public class HBaseSyslogEventSerializer implements HbaseEventSerializer {
             e.addColumn(cf, "host".getBytes(charset), syslogEvent.host.getBytes(charset));
             e.addColumn(cf, "timestamp".getBytes(charset), syslogEvent.timestamp.getBytes(charset));
             e.addColumn(cf, "Message".getBytes(charset), syslogEvent.Message.getBytes(charset));
-//            e.addColumn(cf, "dynamic".getBytes(charset), syslogEvent.dynamic);
+            for (Map.Entry<String, Object> entry : syslogEvent.dynamic.entrySet()) {
+                e.addColumn(cf, ("d_" + entry.getKey()).getBytes(charset), entry.getValue().toString().getBytes(charset));
+            }
             actions.add(e);
 
             return actions;

@@ -69,7 +69,9 @@ public class HBaseWindowsLogEventSerializer implements HbaseEventSerializer {
             e.addColumn(cf, "EventReceivedTime".getBytes(charset), getBytes(windowsLogEvent.EventReceivedTime));
             e.addColumn(cf, "Path".getBytes(charset), getBytes(windowsLogEvent.Path));
             e.addColumn(cf, "Message".getBytes(charset), getBytes(windowsLogEvent.Message));
-//            e.addColumn(cf, "dynamic".getBytes(charset), ("" + windowsLogEvent.dynamic).getBytes(charset));
+            for (Map.Entry<String, Object> entry : windowsLogEvent.dynamic.entrySet()) {
+                e.addColumn(cf, ("d_" + entry.getKey()).getBytes(charset), entry.getValue().toString().getBytes(charset));
+            }
             actions.add(e);
 
             return actions;
