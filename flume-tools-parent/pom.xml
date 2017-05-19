@@ -18,7 +18,7 @@
         <connection>scm:git:git://github.com/codepfleger/flume-tools.git</connection>
         <developerConnection>scm:git:git@github.com:codepfleger/flume-tools.git</developerConnection>
         <url>https://github.com/codepfleger/flume-tools.git</url>
-        <tag>HEAD</tag>
+        <tag>releases/2.0</tag>
     </scm>
 
     <developers>
